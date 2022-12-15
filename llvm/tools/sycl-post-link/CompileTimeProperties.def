@@ -32,3 +32,4 @@ SYCL_COMPILE_TIME_PROPERTY("sycl-alignment", 6182, DecorValueTy::uint32)
 SYCL_COMPILE_TIME_PROPERTY("sycl-wait-request", 6183, DecorValueTy::uint32)
 SYCL_COMPILE_TIME_PROPERTY("sycl-stable", 6184, DecorValueTy::boolean)
 SYCL_COMPILE_TIME_PROPERTY("sycl-strict", 19, DecorValueTy::boolean)
+
