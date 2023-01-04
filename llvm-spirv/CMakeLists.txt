@@ -37,8 +37,15 @@ if(NOT DEFINED LLVM_TOOL_SPIRV_HEADERS_BUILD AND
   file(READ spirv-headers-tag.conf SPIRV_HEADERS_TAG)
   # Strip the potential trailing newline from tag
   string(STRIP "${SPIRV_HEADERS_TAG}" SPIRV_HEADERS_TAG)
+
+  #FetchContent_Declare(spirv-headers
+  #  GIT_REPOSITORY    https://github.com/KhronosGroup/SPIRV-Headers.git
+  #  GIT_TAG           ${SPIRV_HEADERS_TAG}
+  #  SOURCE_DIR ${LLVM_EXTERNAL_SPIRV_HEADERS_SOURCE_DIR}
+  #)
+
   FetchContent_Declare(spirv-headers
-    GIT_REPOSITORY    https://github.com/KhronosGroup/SPIRV-Headers.git
+    GIT_REPOSITORY    https://github.com/broxigarchen/SPIRV-Headers.git
     GIT_TAG           ${SPIRV_HEADERS_TAG}
     SOURCE_DIR ${LLVM_EXTERNAL_SPIRV_HEADERS_SOURCE_DIR}
   )
