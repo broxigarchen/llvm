@@ -26,6 +26,7 @@ using namespace llvm;
 namespace {
 
 constexpr StringRef SYCL_HOST_ACCESS_ATTR = "sycl-host-access";
+constexpr StringRef SYCL_PIPELINED_ATTR = "sycl-pipelined";
 
 constexpr StringRef SPIRV_DECOR_MD_KIND = "spirv.Decorations";
 constexpr StringRef SPIRV_PARAM_DECOR_MD_KIND = "spirv.ParameterDecorations";
@@ -34,6 +35,9 @@ constexpr StringRef SPIRV_PARAM_DECOR_MD_KIND = "spirv.ParameterDecorations";
 // https://github.com/intel/llvm/blob/sycl/sycl/doc/extensions/DeviceGlobal/SPV_INTEL_global_variable_decorations.asciidoc#decoration
 constexpr uint32_t SPIRV_HOST_ACCESS_DECOR = 6147;
 constexpr uint32_t SPIRV_HOST_ACCESS_DEFAULT_VALUE = 2; // Read/Write
+
+constexpr uint32_t SPIRV_INITIATION_INTERVAL_DECOR = 5917;
+constexpr uint32_t SPIRV_PIPELINE_ENABLE_DECOR = 5919;
 
 enum class DecorValueTy {
   uint32,
@@ -204,6 +208,26 @@ attributeToExecModeMetadata(Module &M, const Attribute &Attr) {
     return std::pair<std::string, MDNode *>("intel_reqd_sub_group_size",
                                             MDNode::get(Ctx, MD));
   }
+
+  auto getIpInterface = [](const char *Name, LLVMContext &Ctx,
+                           const Attribute &Attr) {
+    // generate either:
+    //   !N = !{!"<name>"} or
+    //   !N = !{!"<name>", !"stall_free_return"}
+    SmallVector<Metadata *, 2> MD;
+    MD.push_back(MDString::get(Ctx, Name));
+    if (getAttributeAsInteger<uint32_t>(Attr))
+      MD.push_back(MDString::get(Ctx, "stall_free_return"));
+    return MDNode::get(Ctx, MD);
+  };
+
+  if (AttrKindStr == "sycl-streaming-interface")
+    return std::pair<std::string, MDNode *>(
+        "ip_interface", getIpInterface("streaming", Ctx, Attr));
+
+  if (AttrKindStr == "sycl-register-map-interface")
+    return std::pair<std::string, MDNode *>("ip_interface",
+                                            getIpInterface("csr", Ctx, Attr));
 
   return std::nullopt;
 }
