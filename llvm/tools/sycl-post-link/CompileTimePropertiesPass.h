@@ -40,7 +40,7 @@ private:
       Module &M, IntrinsicInst *IntrInst,
       SmallVectorImpl<IntrinsicInst *> &RemovableAnnotations);
 
-  bool transformSYCLPropertiesAnnotationForLoadStore(
+  void transformAlignmentFromSYCLPropertiesAnnotation(
       Module &M, IntrinsicInst *IntrInst,
       SmallVectorImpl<IntrinsicInst *> &RemovableAnnotations);
 

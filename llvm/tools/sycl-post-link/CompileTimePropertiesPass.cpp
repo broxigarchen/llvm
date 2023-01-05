@@ -367,11 +367,7 @@ PreservedAnalyses CompileTimePropertiesPass::run(Module &M,
     for (inst_iterator I = inst_begin(&F), E = inst_end(&F); I != E; ++I)
       if (auto *IntrInst = dyn_cast<IntrinsicInst>(&*I))
         if (IntrInst->getIntrinsicID() == Intrinsic::ptr_annotation) {
-            //if found annotation for Load/store
-            if(transformSYCLPropertiesAnnotationForLoadStore(M, IntrInst, RemovableAnnots)) {
-                CompileTimePropertiesMet = true;
-                continue;
-            }
+            transformAlignmentFromSYCLPropertiesAnnotation(M, IntrInst, RemovableAnnots);
 
             if(transformSYCLPropertiesAnnotation(M, IntrInst, RemovableAnnots))
                 CompileTimePropertiesMet = true;
@@ -390,8 +386,7 @@ PreservedAnalyses CompileTimePropertiesPass::run(Module &M,
                                   : PreservedAnalyses::all();
 }
 
-// Returns true if the transformation removed IntrInst.
-bool CompileTimePropertiesPass::transformSYCLPropertiesAnnotationForLoadStore(
+void CompileTimePropertiesPass::transformAlignmentFromSYCLPropertiesAnnotation(
     Module &M, IntrinsicInst *IntrInst,
     SmallVectorImpl<IntrinsicInst *> &RemovableAnnotations) {
 
@@ -410,16 +405,15 @@ bool CompileTimePropertiesPass::transformSYCLPropertiesAnnotationForLoadStore(
     if (auto *C = dyn_cast<Constant>(GEP->getOperand(0)))
       AnnotStrArgGV = dyn_cast<GlobalVariable>(C);
   if (!AnnotStrArgGV)
-    return false;
+    return;
 
   Optional<StringRef> AnnotStr = getGlobalVariableString(AnnotStrArgGV);
   if (!AnnotStr)
-      return false;
+      return;
 
   //parse properties string to decoration-value pairs
   auto properties = parseSYCLPropertiesString(M, IntrInst);
 
-  bool removeAnnotation = true;
   SmallVector<Value*, 8> userList;
   SmallVector<Instruction*, 4> instList;
   //check if used by a load or store instructions
@@ -436,9 +430,6 @@ bool CompileTimePropertiesPass::transformSYCLPropertiesAnnotationForLoadStore(
   for (auto& value: userList) {
       if (isa<LoadInst>(value) || isa<StoreInst>(value))
           instList.push_back(cast<Instruction>(value));
-      else
-          //used by other value, do not remove llvm.ptr.anntation
-          removeAnnotation = false;
   }
 
   for (auto property : properties) {
@@ -452,45 +443,22 @@ bool CompileTimePropertiesPass::transformSYCLPropertiesAnnotationForLoadStore(
       auto DecorValue = property.second;
       uint32_t attr_val;
 
-      if (DecorStr == "sycl-buffer-location") {
-          assert(DecorValue && !DecorValue->getAsInteger(0, attr_val) &&
-                  "sycl-buffer-location attribute is missing or not valid");
-
-          MDNode* SPIRVMetadata = buildSpirvDecorMetadata(Ctx, DecorCode, attr_val);
-          //apply deocration on load/store
-          for (auto inst : instList)
-             inst->setMetadata(MDKindID, SPIRVMetadata);
-
-      } else if (DecorStr == "sycl-alignment") {
+      if (DecorStr == "sycl-alignment") {
           assert(DecorValue && !DecorValue->getAsInteger(0, attr_val) &&
                   "sycl-alignment attribute is missing or not valid");
 
           assert(llvm::isPowerOf2_64(attr_val) &&
                   "sycl-alignment attribute is not a power of 2");
 
-          //apply alignment attributes on load/store
+          //apply alignment attributes to load/store
           for (auto inst : instList) {
               if (auto loadinst = dyn_cast<LoadInst>(inst))
                 loadinst->setAlignment(Align(attr_val));
               else if (auto storeinst = dyn_cast<StoreInst>(inst))
                 storeinst->setAlignment(Align(attr_val));
           }
-      } else {
-          //found something else, do not remove llvm.ptr.annotation
-          removeAnnotation = false;
       }
   }
-
-  if (removeAnnotation) {
-      RemovableAnnotations.push_back(IntrInst);
-
-      //clean up users
-      auto src = IntrInst->getOperand(0);
-      IntrInst->replaceAllUsesWith(src); 
-      return true;
-  }
-
-  return false;
 }
 
 // Returns true if the transformation changed IntrInst.
