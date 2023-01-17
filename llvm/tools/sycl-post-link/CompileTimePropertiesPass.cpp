@@ -26,6 +26,7 @@ namespace {
 constexpr StringRef SYCL_HOST_ACCESS_ATTR = "sycl-host-access";
 
 constexpr StringRef SPIRV_DECOR_MD_KIND = "spirv.Decorations";
+constexpr StringRef SPIRV_PARAM_DECOR_MD_KIND = "spirv.ParameterDecorations";
 // The corresponding SPIR-V OpCode for the host_access property is documented
 // in the SPV_INTEL_global_variable_decorations design document:
 // https://github.com/intel/llvm/blob/sycl/sycl/doc/extensions/DeviceGlobal/SPV_INTEL_global_variable_decorations.asciidoc#decoration
@@ -217,6 +218,7 @@ PreservedAnalyses CompileTimePropertiesPass::run(Module &M,
                                                  ModuleAnalysisManager &MAM) {
   LLVMContext &Ctx = M.getContext();
   unsigned MDKindID = Ctx.getMDKindID(SPIRV_DECOR_MD_KIND);
+  unsigned MDParamKindID = Ctx.getMDKindID(SPIRV_PARAM_DECOR_MD_KIND);
   bool CompileTimePropertiesMet = false;
 
   // Let's process all the globals
@@ -259,6 +261,29 @@ PreservedAnalyses CompileTimePropertiesPass::run(Module &M,
     // Only consider kernels.
     if (F.getCallingConv() != CallingConv::SPIR_KERNEL)
       continue;
+
+    {
+      SmallVector<Metadata *, 8> MDOps;
+      broxigarchen marked this conversation as resolved.Show resolved
+          MDOps.reserve(F.arg_size());
+      bool foundKernelProperties = false;
+      for (unsigned i = 0; i < F.arg_size(); i++) {
+        SmallVector<Metadata *, 8> MDArgOps;
+        for (auto &Attribute : F.getAttributes().getParamAttrs(i)) {
+          if (MDNode *SPIRVMetadata =
+                  attributeToDecorateMetadata(Ctx, Attribute))
+            MDArgOps.push_back(SPIRVMetadata);
+        }
+        if (!MDArgOps.empty())
+          foundKernelProperties = true;
+        MDOps.push_back(MDNode::get(Ctx, MDArgOps));
+      }
+      // Add the generated metadata to the kernel function.
+      if (foundKernelProperties) {
+        F.addMetadata(MDParamKindID, *MDNode::get(Ctx, MDOps));
+        CompileTimePropertiesMet = true;
+      }
+    }
 
     SmallVector<Metadata *, 8> MDOps;
     SmallVector<std::pair<std::string, MDNode *>, 8> NamedMDOps;
