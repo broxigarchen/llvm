@@ -297,8 +297,7 @@ PreservedAnalyses CompileTimePropertiesPass::run(Module &M,
 
     {
       SmallVector<Metadata *, 8> MDOps;
-      broxigarchen marked this conversation as resolved.Show resolved
-          MDOps.reserve(F.arg_size());
+      MDOps.reserve(F.arg_size());
       bool foundKernelProperties = false;
       for (unsigned i = 0; i < F.arg_size(); i++) {
         SmallVector<Metadata *, 8> MDArgOps;
