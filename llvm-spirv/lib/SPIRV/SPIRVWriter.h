@@ -118,6 +118,7 @@ public:
   bool transDecoration(Value *V, SPIRVValue *BV);
   bool shouldTryToAddMemAliasingDecoration(Instruction *V);
   void transMemAliasingINTELDecorations(Instruction *V, SPIRVValue *BV);
+  void transBufferLocationINTELDecorations(Instruction *V, SPIRVValue *BV);
   SPIRVWord transFunctionControlMask(Function *);
   SPIRVFunction *transFunctionDecl(Function *F);
   void transVectorComputeMetadata(Function *F);
