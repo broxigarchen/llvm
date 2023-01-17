@@ -191,12 +191,6 @@ attributeToExecModeMetadata(Module &M, const Attribute &Attr) {
       MDVals.push_back(ConstantAsMetadata::get(
           Constant::getIntegerValue(SizeTTy, APInt(SizeTBitSize, ValStr, 10))));
 
-    // The SPIR-V translator expects 3 values, so we pad the remaining
-    // dimensions with 1.
-    for (size_t I = MDVals.size(); I < 3; ++I)
-      MDVals.push_back(ConstantAsMetadata::get(
-          Constant::getIntegerValue(SizeTTy, APInt(SizeTBitSize, ValStr, 10))));
-
     const char *MDName = (AttrKindStr == "sycl-work-group-size")
                              ? "reqd_work_group_size"
                              : "work_group_size_hint";
@@ -306,6 +300,7 @@ PreservedAnalyses CompileTimePropertiesPass::run(Module &M,
         F.addMetadata(MDParamKindID, *MDNode::get(Ctx, MDOps));
         CompileTimePropertiesMet = true;
       }
+	}
 
     SmallVector<Metadata *, 8> MDOps;
     SmallVector<std::pair<std::string, MDNode *>, 8> NamedMDOps;
@@ -342,16 +337,6 @@ PreservedAnalyses CompileTimePropertiesPass::run(Module &M,
     }
 
     {
-      // Process all properties on kernels.
-      SmallVector<Metadata *, 8> MDOps;
-      SmallVector<std::pair<std::string, MDNode *>, 8> NamedMDOps;
-      for (const Attribute &Attribute : F.getAttributes().getFnAttrs()) {
-        if (MDNode *SPIRVMetadata = attributeToDecorateMetadata(Ctx, Attribute))
-          MDOps.push_back(SPIRVMetadata);
-        else if (auto NamedMetadata = attributeToExecModeMetadata(M, Attribute))
-          NamedMDOps.push_back(*NamedMetadata);
-      }
-
       // Add the generated metadata to the kernel function.
       if (!MDOps.empty()) {
         F.addMetadata(MDKindID, *MDNode::get(Ctx, MDOps));
