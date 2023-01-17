@@ -357,6 +357,7 @@ std::string SPIRVToLLVM::transVCTypeName(SPIRVTypeBufferSurfaceINTEL *PST) {
 }
 
 Type *SPIRVToLLVM::transType(SPIRVType *T, bool UseTPT) {
+
   // Try to reuse a known type if it's already matched. However, if we want to
   // produce a TypedPointerType in lieu of a PointerType, we *do not* want to
   // pull a PointerType out of the type map, nor do we want to store a
@@ -3367,6 +3368,8 @@ void generateIntelFPGAAnnotation(const SPIRVEntry *E,
   }
   if (E->hasDecorate(DecorationForcePow2DepthINTEL, 0, &Result))
     Out << "{force_pow2_depth:" << Result << '}';
+  if (E->hasDecorate(DecorationBufferLocationINTEL,0, &Result))
+    Out << "{sycl-buffer-location:" << Result << '}';
   if (E->hasDecorate(DecorationUserSemantic))
     Out << E->getDecorationStringLiteral(DecorationUserSemantic).front();
 
