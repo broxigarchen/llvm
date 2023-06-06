@@ -53,7 +53,10 @@ public:
   annotated_ref(T *Ptr) : m_Ptr(Ptr) {}
   annotated_ref(const annotated_ref &) = default;
 
-  operator T() const { return *m_Ptr; }
+  operator T() const {
+
+    return *m_Ptr;
+  }
 
   annotated_ref &operator=(const T &Obj) {
     *m_Ptr = Obj;
