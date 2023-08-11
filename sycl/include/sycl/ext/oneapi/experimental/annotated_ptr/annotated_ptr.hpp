@@ -59,12 +59,6 @@ template <int N> struct PropertyMetaInfo<alignment_key::value_t<N>> {
 } // namespace detail
 
 namespace {
-#define PROPAGATE_OP(op)                                                       \
-  annotated_ref operator op(const T &rhs) {                                    \
-    (*m_Ptr) op rhs;                                                           \
-    return *this;                                                              \
-  }
-
 // compare strings on compile time
 constexpr bool compareStrs(const char *Str1, const char *Str2) {
   return std::string_view(Str1) == Str2;
@@ -102,6 +96,7 @@ class annotated_ref {
 template <typename T, typename... Props>
 class annotated_ref<T, detail::properties_t<Props...>> {
   using property_list_t = detail::properties_t<Props...>;
+  using this_t = annotated_ref<T, detail::properties_t<Props...>>;
 
 private:
   T *m_Ptr;
@@ -111,6 +106,16 @@ public:
   annotated_ref(const annotated_ref &) = default;
 
   operator T() const {
+#ifdef __SYCL_DEVICE_ONLY__
+    return *__builtin_intel_sycl_ptr_annotation(
+        m_Ptr, detail::PropertyMetaInfo<Props>::name...,
+        detail::PropertyMetaInfo<Props>::value...);
+#else
+    return *m_Ptr;
+#endif
+  }
+
+  operator T &() {
 #ifdef __SYCL_DEVICE_ONLY__
     return *__builtin_intel_sycl_ptr_annotation(
         m_Ptr, detail::PropertyMetaInfo<Props>::name...,
@@ -132,15 +137,6 @@ public:
   }
 
   annotated_ref &operator=(const annotated_ref &) = default;
-
-  PROPAGATE_OP(+=)
-  PROPAGATE_OP(-=)
-  PROPAGATE_OP(*=)
-  PROPAGATE_OP(/=)
-  PROPAGATE_OP(%=)
-  PROPAGATE_OP(^=)
-  PROPAGATE_OP(&=)
-  PROPAGATE_OP(|=)
 };
 
 #undef PROPAGATE_OP

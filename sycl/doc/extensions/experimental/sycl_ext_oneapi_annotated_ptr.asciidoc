@@ -565,6 +565,7 @@ class annotated_ref {
     annotated_ref(T*);
     annotated_ref(const annotated_ref&) = default;
     operator T() const;
+    operator T&();
     annotated_ref& operator=(const T &);
     annotated_ref& operator=(const annotated_ref&) = default;
   };
@@ -591,6 +592,16 @@ a|
 [source,c++]
 ----
 operator T() const;
+----
+|
+Reads the object of type `T` that is referenced by this wrapper, applying the
+annotations when the object is loaded from memory.
+
+// --- ROW BREAK ---
+a|
+[source,c++]
+----
+operator T&();
 ----
 |
 Reads the object of type `T` that is referenced by this wrapper, applying the
