@@ -21,22 +21,22 @@ struct test {
 int main() {
   queue Q;
 
-  auto *a = malloc_device<int>(8, Q);
-  auto a_ptr = annotated_arg{a, properties{buffer_location<0>}};
+  auto *a = malloc_share<int>(8, Q);
+  auto a_ptr = annotated_arg{a};
   for (int i = 0; i < 8; i++)
     a_ptr[i] = i;
 
-  auto *b = malloc_device<int>(4, Q);
-  auto b_ptr = annotated_arg{b, properties{buffer_location<1>}};
+  auto *b = malloc_share<int>(4, Q);
+  auto b_ptr = annotated_arg{b};
 
-  auto *c = malloc_device<test>(1, Q);
-  c->b = malloc_device<int>(1, Q);
-  auto c_ptr = annotated_arg{c, properties{buffer_location<2>}};
+  auto *c = malloc_share<test>(1, Q);
+  c->b = malloc_share<int>(1, Q);
+  auto c_ptr = annotated_arg{c};
   c_ptr->a = 0;
   c_ptr->b[0] = 0;
 
-  auto *d = malloc_device<int>(4, Q);
-  auto d_ptr = annotated_arg{d, properties{buffer_location<3>}};
+  auto *d = malloc_share<int>(4, Q);
+  auto d_ptr = annotated_arg{d};
   for (int i = 0; i < 4; i++)
     d_ptr[i] = i;
 
@@ -62,7 +62,7 @@ int main() {
 
      c_ptr->a++;
      (*c_ptr).a += 1;
-     c_ptr->*b = 5;
+     *c_ptr->b = 5;
 
      auto func = [=](int &a, const int b, const int &c, int *d) {
        *d = a + b - c;
@@ -83,7 +83,7 @@ int main() {
   assert(b_ptr[2] == 1 && "b_ptr[2] value does not match.");
   assert(b_ptr[3] == 11 && "b_ptr[3] value does not match.");
 
-  assert(c_ptr[0] == 2 && "c_ptr[0] value does not match.");
+  assert(c_ptr->a == 2 && "c_ptr[0] value does not match.");
   assert(*c_ptr->b == 5 && "c_ptr[0].b value does not match.");
 
   assert(d_ptr[3] == -1 && "d_ptr[3] value does not match.");
